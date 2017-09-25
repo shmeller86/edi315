@@ -43,7 +43,7 @@ class Info
                     if ($codes) {
                         if (count($mass2['DESC']['CODES']) > 0) {
                             foreach ($mass2['DESC']['CODES'] as $k => $v) {
-                                if (isset($mass2['DESC']['CODES'][$mass2['VALUE']])) {
+                                if (@isset($mass2['DESC']['CODES'][$mass2['VALUE']])) {
                                     echo "\t\t\t\t\t\t\t\t\t\t\tCodes: " . $mass2['DESC']['CODES'][$mass2['VALUE']] . PHP_EOL;
                                     break;
                                 }
