@@ -6,7 +6,7 @@
  * Time: 17:22
  */
 
-namespace EDI;
+namespace app\EDI;
 
 
 class Info
@@ -17,7 +17,7 @@ class Info
     {
         $this->mass = $mass;
         $this->MsgCreate($name, $require, $type, $min, $max, $usage, $comment, $codes);
-        //$this->processArray($this->mass);
+        //$this->getVesselDeparture($name, $require, $type, $min, $max, $usage, $comment, $codes);
     }
 
     private function MsgCreate($name, $require, $type, $min, $max, $usage, $comment, $codes){
@@ -57,17 +57,24 @@ class Info
         }
     }
 
-    /*private function processArray($array, $level = 0) {
-        $level++;
-        if (!is_array($array)) {
-            echo str_repeat("\t", $level) . $array.PHP_EOL;
-            return $array;
+    public function getVesselDeparture($name, $require, $type, $min, $max, $usage, $comment, $codes){
+        foreach ($this->mass as $mass1) {
+            switch ($mass1['DATA'][0]['VALUE']) {
+                case "B4":
+                    echo $mass1['DATA'][11]['DESC']['NAME']." :\t\t\t ".$mass1['DATA'][11]['VALUE'].PHP_EOL.PHP_EOL;
+                    break;
+                case "R4":
+                    echo $mass1['DATA'][1]['DESC']['NAME']." :\t\t\t ".$mass1['DATA'][1]['VALUE'].PHP_EOL;
+                    break;
+                case "DTM":
+                    echo $mass1['DATA'][1]['DESC']['NAME']." :\t\t\t ".$mass1['DATA'][1]['VALUE'].PHP_EOL;
+                    echo $mass1['DATA'][2]['DESC']['NAME']." :\t\t\t ".$mass1['DATA'][2]['VALUE'].PHP_EOL;
+                    echo $mass1['DATA'][3]['DESC']['NAME']." :\t\t\t ".$mass1['DATA'][3]['VALUE'].PHP_EOL;
+                    echo $mass1['DATA'][4]['DESC']['NAME']." :\t\t\t ".$mass1['DATA'][4]['VALUE'].PHP_EOL.PHP_EOL;
+                    break;
+            }
         }
-        // Тут добавляем обработку массива
+    }
 
-        foreach ($array as $arrayItem) {
-            $this->processArray($arrayItem, $level);
-        }
-    }*/
 
 }

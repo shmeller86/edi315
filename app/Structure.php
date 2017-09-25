@@ -6,7 +6,7 @@
  * Time: 14:29
  */
 
-namespace EDI;
+namespace app\EDI;
 
 
 class Structure
