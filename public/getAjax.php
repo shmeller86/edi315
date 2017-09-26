@@ -98,11 +98,12 @@ foreach ($obj2->arr_desc as $value) {
     }
     echo "<br>";
 }
-    echo "<div class=\"jumbotron\">";
-    echo "Container: ".$container."<br>";
-    echo "Location: ".$location."<br>";
-    echo "Booking: ".$booking."<br>";
-    echo "Port Of Loading: ".$port."<br>";
-    echo "Date and Time: ".$date."<br>";
+    echo "<div class=\"alert alert-success alert-dismissable\">";
+echo "<button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-hidden=\"true\">&times;</button>";
+    echo "<b>Container</b>: ".$container."<br>";
+    echo "<b>Location</b>: ".$location."<br>";
+    echo "<b>Booking</b>: ".$booking."<br>";
+    echo "<b>Port Of Loading</b>: ".$port."<br>";
+    echo "<b>Date and Time</b>: ".$date."<br>";
     echo "</div>";
     ?>
