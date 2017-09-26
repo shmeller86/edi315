@@ -4,7 +4,8 @@ include('../app/Document.php');
 include('../app/Structure.php');
 include('../app/Info.php');
 
-$file = file_get_contents('../tmp/test');
+$path = '../tmp/test';
+$file = file_get_contents($path);
 
 
 $obj2 = new app\EDI\Structure((new app\EDI\Document($file))->seg);
@@ -129,14 +130,14 @@ foreach ($obj2->arr_desc as $value) {
         </div>
         <div class="col-md-3">
             <h3>Functions</h3>
-            <p><a href="#" onclick="getAjax('VesDep');">Get Vessel Departure</a></p>
-            <p><a href="#">Get Vessel Departure Relay</a></p>
-            <p><a href="#">Get Vessel Arrival (Estimated)</a></p>
-            <p><a href="#">Get Vessel Arrival (Actual)</a></p>
-            <p><a href="#">Get Actual date of departure from Port of destination (Estimated)</a></p>
-            <p><a href="#">Get Actual date of departure from Port of destination (Actual)</a></p>
-            <p><a href="#">Get Actual date of delivery to DC (Estimated)</a></p>
-            <p><a href="#">Get Actual date of delivery to DC (Actual)</a></p>
+            <p><a href="#" onclick="getAjax('VesDep','<?php echo $path; ?>');">Get Vessel Departure</a></p>
+            <p><a href="#" onclick="getAjax('VesDepRelay','<?php echo $path; ?>');">Get Vessel Departure Relay</a></p>
+            <p><a href="#" onclick="getAjax('VesArrEst','<?php echo $path; ?>');">Get Vessel Arrival (Estimated)</a></p>
+            <p><a href="#" onclick="getAjax('VesArrAct','<?php echo $path; ?>');">Get Vessel Arrival (Actual)</a></p>
+            <p><a href="#" onclick="getAjax('ADDPODEst','<?php echo $path; ?>');">Get Actual date of departure from Port of destination (Estimated)</a></p>
+            <p><a href="#" onclick="getAjax('ADDPODAct','<?php echo $path; ?>');">Get Actual date of departure from Port of destination (Actual)</a></p>
+            <p><a href="#" onclick="getAjax('ADDDCEst','<?php echo $path; ?>');">Get Actual date of delivery to DC (Estimated)</a></p>
+            <p><a href="#" onclick="getAjax('ADDDCAct','<?php echo $path; ?>');">Get Actual date of delivery to DC (Actual)</a></p>
         </div>
     </div>
     <hr>
@@ -148,11 +149,11 @@ foreach ($obj2->arr_desc as $value) {
 <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
 <script src="https://code.jquery.com/jquery.js"></script>
 <script>
-    function getAjax(type){
+    function getAjax(type, path){
         $.ajax({
             type: "GET",
             url: "getAjax.php",
-            data: "type="+ type,
+            data: "type="+ type + "&path=" +path,
             success : function(text){
                 $("#source").html(text);
 

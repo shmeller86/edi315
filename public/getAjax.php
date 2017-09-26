@@ -6,7 +6,7 @@ include('../app/Document.php');
 include('../app/Structure.php');
 include('../app/Info.php');
 
-$file = file_get_contents('../tmp/test');
+$file = file_get_contents($_GET['path']);
 
 
 $obj2 = new app\EDI\Structure((new app\EDI\Document($file))->seg);
@@ -26,7 +26,6 @@ foreach ($obj2->arr_desc as $value) {
 
                 $css = "info";
                 if ($_GET['type'] == 'VesDep') {
-
                     if ($value['DATA'][0]['VALUE'] == "B4") {
                             if ($key2 == '7') $css = "success";
                             if ($key2 == '8') $css = "success";
@@ -50,6 +49,154 @@ foreach ($obj2->arr_desc as $value) {
                     }
                     if ($value['DATA'][0]['VALUE'] == "DTM" and $save == 1) {
                         if ($value['DATA'][1]['VALUE'] == "370") {
+                            if ($key2 == '1') $css = "success";
+                            if ($key2 == '2') $css = "success";
+                            if ($key2 == '3') {
+                                $css = "success";
+                                $save = 0;
+                            }
+                            preg_match_all("/(\d{4})(\d{2})(\d{2})/",$value['DATA'][2]['VALUE'],$matches);
+                            preg_match_all("/(\d{2})(\d{2})/",$value['DATA'][3]['VALUE'],$matches2);
+
+                            $date = $matches[1][0].".".$matches[2][0].".".$matches[3][0]." ".$matches2[1][0].":".$matches2[2][0];
+                        }
+                    }
+                }
+                if ($_GET['type'] == 'VesDepRelay') {
+                    if ($value['DATA'][0]['VALUE'] == "B4") {
+                            if ($key2 == '7') $css = "success";
+                            if ($key2 == '8') $css = "success";
+                            if ($key2 == '11') $css = "success";
+                            $container = $value['DATA'][7]['VALUE'].$value['DATA'][8]['VALUE'];
+                            $location = $value['DATA'][11]['VALUE'];
+                    }
+                    if ($value['DATA'][0]['VALUE'] == "N9") {
+                        if ($value['DATA'][1]['VALUE'] == "BM") {
+                            if ($key2 == '2') $css = "success";
+                            $booking = $value['DATA'][2]['VALUE'];
+                        }
+                    }
+                    if ($value['DATA'][0]['VALUE'] == "R4") {
+                        if ($value['DATA'][1]['VALUE'] == "Y") {
+                            if ($key2 == '1') $css = "success";
+                            if ($key2 == '4') $css = "success";
+                            $port = $value['DATA'][4]['VALUE'];
+                            $save = 1;
+                        }
+                    }
+                    if ($value['DATA'][0]['VALUE'] == "DTM" and $save == 1) {
+                        if ($value['DATA'][1]['VALUE'] == "370") {
+                            if ($key2 == '1') $css = "success";
+                            if ($key2 == '2') $css = "success";
+                            if ($key2 == '3') {
+                                $css = "success";
+                                $save = 0;
+                            }
+                            preg_match_all("/(\d{4})(\d{2})(\d{2})/",$value['DATA'][2]['VALUE'],$matches);
+                            preg_match_all("/(\d{2})(\d{2})/",$value['DATA'][3]['VALUE'],$matches2);
+
+                            $date = $matches[1][0].".".$matches[2][0].".".$matches[3][0]." ".$matches2[1][0].":".$matches2[2][0];
+                        }
+                    }
+                }
+                if ($_GET['type'] == 'VesArrEst') {
+                    if ($value['DATA'][0]['VALUE'] == "B4") {
+                            if ($key2 == '7') $css = "success";
+                            if ($key2 == '8') $css = "success";
+                            if ($key2 == '11') $css = "success";
+                            $container = $value['DATA'][7]['VALUE'].$value['DATA'][8]['VALUE'];
+                            $location = $value['DATA'][11]['VALUE'];
+                    }
+                    if ($value['DATA'][0]['VALUE'] == "N9") {
+                        if ($value['DATA'][1]['VALUE'] == "BM") {
+                            if ($key2 == '2') $css = "success";
+                            $booking = $value['DATA'][2]['VALUE'];
+                        }
+                    }
+                    if ($value['DATA'][0]['VALUE'] == "R4") {
+                        if ($value['DATA'][1]['VALUE'] == "D" || $value['DATA'][1]['VALUE'] == "E") {
+                            if ($key2 == '1') $css = "success";
+                            if ($key2 == '4') $css = "success";
+                            $port = $value['DATA'][4]['VALUE'];
+                            $save = 1;
+                        }
+                    }
+                    if ($value['DATA'][0]['VALUE'] == "DTM" and $save == 1) {
+                        if ($value['DATA'][1]['VALUE'] == "139") {
+                            if ($key2 == '1') $css = "success";
+                            if ($key2 == '2') $css = "success";
+                            if ($key2 == '3') {
+                                $css = "success";
+                                $save = 0;
+                            }
+                            preg_match_all("/(\d{4})(\d{2})(\d{2})/",$value['DATA'][2]['VALUE'],$matches);
+                            preg_match_all("/(\d{2})(\d{2})/",$value['DATA'][3]['VALUE'],$matches2);
+
+                            $date = $matches[1][0].".".$matches[2][0].".".$matches[3][0]." ".$matches2[1][0].":".$matches2[2][0];
+                        }
+                    }
+                }
+                if ($_GET['type'] == 'VesArrAct') {
+                    if ($value['DATA'][0]['VALUE'] == "B4") {
+                            if ($key2 == '7') $css = "success";
+                            if ($key2 == '8') $css = "success";
+                            if ($key2 == '11') $css = "success";
+                            $container = $value['DATA'][7]['VALUE'].$value['DATA'][8]['VALUE'];
+                            $location = $value['DATA'][11]['VALUE'];
+                    }
+                    if ($value['DATA'][0]['VALUE'] == "N9") {
+                        if ($value['DATA'][1]['VALUE'] == "BM") {
+                            if ($key2 == '2') $css = "success";
+                            $booking = $value['DATA'][2]['VALUE'];
+                        }
+                    }
+                    if ($value['DATA'][0]['VALUE'] == "R4") {
+                        if ($value['DATA'][1]['VALUE'] == "D" || $value['DATA'][1]['VALUE'] == "E") {
+                            if ($key2 == '1') $css = "success";
+                            if ($key2 == '4') $css = "success";
+                            $port = $value['DATA'][4]['VALUE'];
+                            $save = 1;
+                        }
+                    }
+                    if ($value['DATA'][0]['VALUE'] == "DTM" and $save == 1) {
+                        if ($value['DATA'][1]['VALUE'] == "140") {
+                            if ($key2 == '1') $css = "success";
+                            if ($key2 == '2') $css = "success";
+                            if ($key2 == '3') {
+                                $css = "success";
+                                $save = 0;
+                            }
+                            preg_match_all("/(\d{4})(\d{2})(\d{2})/",$value['DATA'][2]['VALUE'],$matches);
+                            preg_match_all("/(\d{2})(\d{2})/",$value['DATA'][3]['VALUE'],$matches2);
+
+                            $date = $matches[1][0].".".$matches[2][0].".".$matches[3][0]." ".$matches2[1][0].":".$matches2[2][0];
+                        }
+                    }
+                }
+                if ($_GET['type'] == 'ADDPODEst') {
+                    if ($value['DATA'][0]['VALUE'] == "B4") {
+                            if ($key2 == '7') $css = "success";
+                            if ($key2 == '8') $css = "success";
+                            if ($key2 == '11') $css = "success";
+                            $container = $value['DATA'][7]['VALUE'].$value['DATA'][8]['VALUE'];
+                            $location = $value['DATA'][11]['VALUE'];
+                    }
+                    if ($value['DATA'][0]['VALUE'] == "N9") {
+                        if ($value['DATA'][1]['VALUE'] == "BM") {
+                            if ($key2 == '2') $css = "success";
+                            $booking = $value['DATA'][2]['VALUE'];
+                        }
+                    }
+                    if ($value['DATA'][0]['VALUE'] == "R4") {
+                        if ($value['DATA'][1]['VALUE'] == "D" || $value['DATA'][1]['VALUE'] == "E") {
+                            if ($key2 == '1') $css = "success";
+                            if ($key2 == '4') $css = "success";
+                            $port = $value['DATA'][4]['VALUE'];
+                            $save = 1;
+                        }
+                    }
+                    if ($value['DATA'][0]['VALUE'] == "DTM" and $save == 1) {
+                        if ($value['DATA'][1]['VALUE'] == "139") {
                             if ($key2 == '1') $css = "success";
                             if ($key2 == '2') $css = "success";
                             if ($key2 == '3') {
