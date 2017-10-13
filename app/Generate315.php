@@ -10,182 +10,328 @@ namespace app\EDI315GEN;
 
 class Generate315
 {
-    private $row = array(
-        'ID' => '13',
-        'SENDER' => 'YLRUS',
-        'GCN' => '000041552',
-        'TYPE_EVENT' => 'VD',
-        'DT_CREATE' => '20.04.2017 12:36',
-        'UNCODE' => 'MYTPP',
-        'SCAC' => 'MAEU',
-        'CONT_NUMBER' => 'MAEU6226029',
-        'BOOKING' => '100220102026A',
 
-        'VESSEL_NUMBER' => '300W',
-        'VESSEL_CODE' => '9308649',
-        'VESSEL_NAME' => 'MAERSK SINGAPORE',
+    /**
+     * Счетчик, который передается в футере, указывает сколько сообщений
+     * содержит данный EDI файл
+     * @var int
+     */
+    private $counter_body_msg = 0;
 
-        'ACTUAL_DATE_DEPARTURE' => '09.10.2017 13:42',
-        'ACTUAL_DATE_DEPARTURE_RELAY' => '',
+    /**
+     * Id с добавлением нулей в начало, приведенный к 9 символам
+     * @var
+     */
+    private $ID_full;
 
-        'TARGET_DATE_ARRIVAL' => '',
-        'ACTUAL_DATE_ARRIVAL' => '',
+    /**
+     * Id отдельно, нужен, чтобы когда будет группа сообщений, в футере
+     * поставить id первой записи, в дальше будет работать $ID_st идентифицирующий
+     * локальное сообщение в рамках одной транзации
+     * @var
+     */
+    private $ID;
 
-        'ACTUAL_DATE_EXPORTATION' => '',
-        'TARGET_DATE_EXPORTATION' => '',
+    /**
+     * ID вложенного сообщения формируется из ID первого сообщения + счетчик в конце до 99 сообщений
+     * в промежутке 0, число приведено к 9 цифрам
+     * @var
+     */
+    private $ID_st;
 
-        'ACTUAL_DATE_DELIVERY' => '',
-        'TARGET_DATE_DELIVERY' => '20.10.2017 15:10',
+    /**
+     * Проверка созданной шапки, нужен для сообщений с вложениями, кода передается
+     * 1 шапка и в теле несколько событий
+     * @var int
+     */
+    private $checkHeader = 0;
 
-        'DT_GENERATE' => '',
-        'ID_LIST_ORDER' => '',
-        'ID_LIST_TRAFFIC' => '',
+    /**
+     * Объект с выборкой
+     * @var array|object
+     */
+    private $row = array();
 
-        'COUNTRY_DEPARTURE' => '',
-        'COUNTRY_ARRIVAL' => '',
-        'COUNTRY_EXPORTATION' => '',
-        'COUNTRY_DELIVERY' => '',
-
-        'PORT_DEPARTURE' => 'TANJUNG PELEPAS',
-        'PORT_DEPARTURE_CODE' => 'MYTPP',
-
-        'PORT_ARRIVAL' => '',
-        'PORT_ARRIVAL_CODE' => '',
-
-        'PORT_EXPORTATION' => '',
-        'PORT_EXPORTATION_CODE' => '',
-
-        'PORT_DELIVERY' => 'SAINT-PETERSBURG',
-        'PORT_DELIVERY_CODE' => 'RULED'
-    );
 
     public function __construct()
     {
-        /**
-         * VESSEL DEPARTURE
-         */
-        if($this->row['TYPE_EVENT'] == 'VD')
-        {
-            $this->genVesselDeparture();
+
+        $connection = ibase_connect("127.0.0.1/3055:/home/gsoft/db/CARGOSMART.FDB", "EDI", "gsoftGSOFT");
+        $q = "select * from edi_generate_315 order by id asc";
+        $res = ibase_query($connection, $q);
+        while($this->row = ibase_fetch_object($res)){
+            /**
+             * VESSEL DEPARTURE
+             */
+            if($this->row->TYPE_EVENT == 'VD')
+            {
+                $this->counter_body_msg++;
+                $this->genVesselDeparture();
+            }
+
+            /**
+             * Vessel Departure Relay
+             */
+            if($this->row->TYPE_EVENT == 'VDR')
+            {
+                $this->counter_body_msg++;
+                $this->genVesselDepartureRelay();
+            }
+
+            /**
+             *  Vessel Arrival (Estimated)
+             */
+            if($this->row->TYPE_EVENT == 'VA')
+            {
+                $this->counter_body_msg++;
+                $this->genVesselArrivalEstim();
+            }
+
+            /**
+             *  Vessel Arrival (Actual)
+             */
+            if($this->row->TYPE_EVENT == 'VA')
+            {
+                $this->counter_body_msg++;
+                $this->genVesselArrivalActual();
+            }
+
+            /**
+             *  Actual date of departure from Port of destination (Estimated)
+             */
+            if($this->row->TYPE_EVENT == 'X6')
+            {
+                $this->counter_body_msg++;
+                $this->genDeparturePortDestinEstim();
+            }
+
+            /**
+             *  Actual date of departure from Port of destination (Actual)
+             */
+            if($this->row->TYPE_EVENT == 'X6')
+            {
+                $this->counter_body_msg++;
+                $this->genDeparturePortDestinActual();
+            }
+
+            /**
+             *  Actual date of delivery to DC (Estimated)
+             */
+            if($this->row->TYPE_EVENT == 'X1')
+            {
+                $this->counter_body_msg++;
+                $this->genDeliveryDcEdstim();
+            }
+
+            /**
+             *  Actual date of delivery to DC (Actual)
+             */
+            if($this->row->TYPE_EVENT == 'X1')
+            {
+                $this->counter_body_msg++;
+                $this->genDeliveryDcActual();
+            }
         }
 
-        /**
-         * Vessel Departure Relay
-         */
-        if($this->row['TYPE_EVENT'] == 'VD')
-        {
-            $this->genVesselDepartureRelay();
-        }
+        // GE*1*2894
+        $this->message .= "GE*{$this->counter_body_msg}*{$this->ID}~\n";
 
-        /**
-         *  Vessel Arrival (Estimated)
-         */
-        if($this->row['TYPE_EVENT'] == 'VA')
-        {
-            $this->genVesselArrivalEstim();
-        }
+        // IEA*1*000002894
+        $this->message .= "IEA*1*{$this->ID_full}~\n";
 
-        /**
-         *  Vessel Arrival (Actual)
-         */
-        if($this->row['TYPE_EVENT'] == 'VA')
-        {
-            $this->genVesselArrivalActual();
-        }
-
-        /**
-         *  Actual date of departure from Port of destination (Estimated)
-         */
-        if($this->row['TYPE_EVENT'] == 'X6')
-        {
-            $this->genDeparturePortDestinEstim();
-        }
-
-        /**
-         *  Actual date of departure from Port of destination (Actual)
-         */
-        if($this->row['TYPE_EVENT'] == 'X6')
-        {
-            $this->genDeparturePortDestinActual();
-        }
-
-        /**
-         *  Actual date of delivery to DC (Estimated)
-         */
-        if($this->row['TYPE_EVENT'] == 'X1')
-        {
-            $this->genDeliveryDcEdstim();
-        }
-
-        /**
-         *  Actual date of delivery to DC (Actual)
-         */
-        if($this->row['TYPE_EVENT'] == 'X1')
-        {
-            $this->genDeliveryDcActual();
-        }
     }
 
 
     public $message;
 
     public function genVesselDeparture(){
+        // счетчик количества строк в теле одного сообщения
+        $SE_COUNTER = 0;
+        if(!$this->checkHeader) {
+            /*
+             *                           ISA
+             */
+            $date = date("ymd", strtotime($this->row->DT_CREATE));
+            $time = date("Hi", strtotime($this->row->DT_CREATE));
+            $this->ID_full = $this->row->ID;
+            for ($i = count($this->ID_full); $i <= 8; $i++) {
+                $this->ID_full = "0" . $this->ID_full;
+            }
+            $this->message = "ISA*00*          *00*          *ZZ*YLRUS          *ZZ*APLUNET        *{$date}*{$time}*U*00401*{$this->ID_full}*0*P*:~\n";
+            /*
+             *                            GS
+             */
+            $date = date("Ymd", strtotime($this->row->DT_CREATE));
+            $time = date("Hi", strtotime($this->row->DT_CREATE));
+            $this->message .= "GS*QO*YLRUS*APLUNET*{$date}*{$time}*{$this->row->ID}*X*004010~\n";
 
-        // HEADER ------------
-        // ISA
-        $date = date("ymd", strtotime($this->row['DT_CREATE']));
-        $time = date("Hi", strtotime($this->row['DT_CREATE']));
-        $this->message = "ISA*00*   *00*   *ZZ*{$this->row['SENDER']}  *ZZ*APLUNET *{$date}*{$time}*U*00401*{$this->row['GCN']}*0*P*:~\n";
-
-        // GS
-        $date = date("Ymd", strtotime($this->row['DT_CREATE']));
-        $time = date("Hi", strtotime($this->row['DT_CREATE']));
-        $this->message .= "GS*QO*{$this->row['SENDER']}*APLUNET*{$date}*{$time}*{$this->row['GCN']}*X*004010~\n";
-
-        //ST
-        $this->message .= "ST*315*0001~\n";
-
-        //B4
-        $date = date("Ymd", strtotime($this->row['ACTUAL_DATE_DEPARTURE']));
-        $time = date("Hi", strtotime($this->row['ACTUAL_DATE_DEPARTURE']));
-        $b4_con_num = substr($this->row['CONT_NUMBER'], 0, 4);
-        $this->message .= "B4***{$this->row['TYPE_EVENT']}*{$date}*{$time}*{$this->row['UNCODE']}*{$this->row['SCAC']}*{$b4_con_num}***{$this->row['PORT_DEPARTURE']}*UN~\n";
-
-        //N9
-        $this->message .= "N9*BM*{$this->row['BOOKING']}~\n";
-        $this->message .= "N9*SCA*{$this->row['SCAC']}~\n";
-        $this->message .= "N9*EQ*{$this->row['CONT_NUMBER']}~\n";
-
-        //Q2
-        $this->message .= "Q2*{$this->row['VESSEL_CODE']}********{$this->row['VESSEL_NUMBER']}***L*{$this->row['VESSEL_NAME']}~\n";
-
-        //LOOP R4 & DTM
-        // 1. code=L (Port of loading MANDATORY)
-        $date = date("Ymd", strtotime($this->row['ACTUAL_DATE_DEPARTURE']));
-        $time = date("Hi", strtotime($this->row['ACTUAL_DATE_DEPARTURE']));
-        $countrycode = substr($this->row['PORT_DEPARTURE_CODE'], 0, 2);
-        $this->message .= "R4*L*UN*{$this->row['PORT_DEPARTURE_CODE']}*{$this->row['PORT_DEPARTURE']}*{$countrycode}~\n";
+            // Признак установленной шапки. Нужна для групп сообщений, т.к. сообщений может быть много, а Header один
+            $this->checkHeader = 1;
+        }
+        /*
+         *                          ST
+         * Добавляем порядковый номер для сообщения, вдруг их больше 1
+         */
+        if(!isset($this->ID_st)) {
+            $this->ID_st = $this->row->ID;
+            $this->ID = $this->row->ID;
+            for ($i = count($this->ID_full); $i <= 6; $i++) {
+                $this->ID_st .= "0";
+            }
+            (int)$this->ID_st .= substr($this->row->ID, -2, 2);
+        }
+        else (int)$this->ID_st++;
+        $this->message .= "ST*315*{$this->ID_st}~\n";
+        ++$SE_COUNTER;
+        /*
+         *                          B4
+         */
+        $date = date("Ymd", strtotime($this->row->ACTUAL_DATE_DEPARTURE));
+        $time = date("Hi", strtotime($this->row->ACTUAL_DATE_DEPARTURE));
+        $b4_con_num = substr($this->row->CONTAINERS, 4);
+        $this->row->SCAC = substr($this->row->CONTAINERS, 0, 4);
+        $this->message .= "B4***VD*{$date}*{$time}*{$this->row->PORT_DEPARTURE_CODE}*{$this->row->SCAC}*{$b4_con_num}***{$this->row->PORT_DEPARTURE}*UN~\n";
+        ++$SE_COUNTER;
+        /*
+         *                          N9
+         */
+        $this->message .= "N9*BM*{$this->row->BOOKING}~\n";
+        ++$SE_COUNTER;
+        $this->message .= "N9*SCA*{$this->row->SCAC}~\n";
+        ++$SE_COUNTER;
+        $this->message .= "N9*EQ*{$this->row->CONTAINERS}~\n";
+        ++$SE_COUNTER;
+        /*
+         *                          Q2
+         */
+        $this->message .= "Q2*********{$this->row->VESSEL_NUMBER}***L*{$this->row->VESSEL_NAME}~\n";
+        ++$SE_COUNTER;
+        /*
+         *                     LOOP R4 & DTM
+         *               1. code=L (Port of loading MANDATORY)
+         */
+        $date = date("Ymd", strtotime($this->row->ACTUAL_DATE_DEPARTURE));
+        $time = date("Hi", strtotime($this->row->ACTUAL_DATE_DEPARTURE));
+        $countrycode = substr($this->row->PORT_DEPARTURE_CODE, 0, 2);
+        $this->message .= "R4*L*UN*{$this->row->PORT_DEPARTURE_CODE}*{$this->row->PORT_DEPARTURE}*{$countrycode}~\n";
+        ++$SE_COUNTER;
         $this->message .= "DTM*370*{$date}*{$time}*LT~\n";
-
-        // 2. code=E (Place of Dilevery MANDATORY)
-        $date = date("Ymd", strtotime($this->row['TARGET_DATE_DELIVERY']));
-        $time = date("Hi", strtotime($this->row['TARGET_DATE_DELIVERY']));
-        $countrycode = substr($this->row['PORT_DELIVERY_CODE'], 0, 2);
-        $this->message .= "R4*E*UN*{$this->row['PORT_DELIVERY_CODE']}*{$this->row['PORT_DELIVERY']}*{$countrycode}~\n";
+        ++$SE_COUNTER;
+        // 2. code=D (Place of Discharge MANDATORY)
+        $date = date("Ymd", strtotime($this->row->TARGET_DATE_ARRIVAL));
+        $time = date("Hi", strtotime($this->row->TARGET_DATE_ARRIVAL));
+        $countrycode = substr($this->row->PORT_ARRIVAL_CODE, 0, 2);
+        $this->message .= "R4*D*UN*{$this->row->PORT_ARRIVAL_CODE}*{$this->row->PORT_ARRIVAL}*{$countrycode}~\n";
+        ++$SE_COUNTER;
         $this->message .= "DTM*139*{$date}*{$time}*LT~\n";
-
+        ++$SE_COUNTER;
+        // 2. code=E (Place of Dilevery MANDATORY)
+        $date = date("Ymd", strtotime($this->row->TARGET_DATE_ARRIVAL));
+        $time = date("Hi", strtotime($this->row->TARGET_DATE_ARRIVAL));
+        $countrycode = substr($this->row->PORT_ARRIVAL_CODE, 0, 2);
+        $this->message .= "R4*E*UN*{$this->row->PORT_ARRIVAL_CODE}*{$this->row->PORT_ARRIVAL}*{$countrycode}~\n";
+        ++$SE_COUNTER;
+        $this->message .= "DTM*139*{$date}*{$time}*LT~\n";
+        ++$SE_COUNTER;
         //SE*15*0001
-        $this->message .= "SE*15*0001~\n";
-
-        // GE*1*2894
-        $this->message .= "GE*1*{$this->row['GCN']}~\n";
-
-        // IEA*1*000002894
-        $this->message .= "IEA*1*{$this->row['GCN']}~\n";
+        ++$SE_COUNTER;
+        $this->message .= "SE*{$SE_COUNTER}*{$this->ID_st}~\n";
     }
     public function genVesselDepartureRelay(){}
 
-    public function genVesselArrivalEstim(){}
+    public function genVesselArrivalEstim(){
+        // счетчик количества строк в теле одного сообщения
+        $SE_COUNTER = 0;
+        if(!$this->checkHeader) {
+            /*
+             *                           ISA
+             */
+            $date = date("ymd", strtotime($this->row->DT_CREATE));
+            $time = date("Hi", strtotime($this->row->DT_CREATE));
+            $this->ID_full = $this->row->ID;
+            for ($i = count($this->ID_full); $i <= 8; $i++) {
+                $this->ID_full = "0" . $this->ID_full;
+            }
+            $this->message = "ISA*00*          *00*          *ZZ*YLRUS          *ZZ*APLUNET        *{$date}*{$time}*U*00401*{$this->ID_full}*0*P*:~\n";
+            /*
+             *                            GS
+             */
+            $date = date("Ymd", strtotime($this->row->DT_CREATE));
+            $time = date("Hi", strtotime($this->row->DT_CREATE));
+            $this->message .= "GS*QO*YLRUS*APLUNET*{$date}*{$time}*{$this->row->ID}*X*004010~\n";
+
+            // Признак установленной шапки. Нужна для групп сообщений, т.к. сообщений может быть много, а Header один
+            $this->checkHeader = 1;
+        }
+        /*
+         *                          ST
+         * Добавляем порядковый номер для сообщения, вдруг их больше 1
+         */
+        if(!isset($this->ID_st)) {
+            $this->ID_st = $this->row->ID;
+            $this->ID = $this->row->ID;
+            for ($i = count($this->ID_full); $i <= 6; $i++) {
+                $this->ID_st .= "0";
+            }
+            (int)$this->ID_st .= substr($this->row->ID, -2, 2);
+        }
+        else (int)$this->ID_st++;
+        $this->message .= "ST*315*{$this->ID_st}~\n";
+        ++$SE_COUNTER;
+        /*
+         *                          B4
+         */
+        $date = date("Ymd", strtotime($this->row->ACTUAL_DATE_DEPARTURE));
+        $time = date("Hi", strtotime($this->row->ACTUAL_DATE_DEPARTURE));
+        $b4_con_num = substr($this->row->CONTAINERS, 4);
+        $this->row->SCAC = substr($this->row->CONTAINERS, 0, 4);
+        $this->message .= "B4***VD*{$date}*{$time}*{$this->row->PORT_DEPARTURE_CODE}*{$this->row->SCAC}*{$b4_con_num}***{$this->row->PORT_DEPARTURE}*UN~\n";
+        ++$SE_COUNTER;
+        /*
+         *                          N9
+         */
+        $this->message .= "N9*BM*{$this->row->BOOKING}~\n";
+        ++$SE_COUNTER;
+        $this->message .= "N9*SCA*{$this->row->SCAC}~\n";
+        ++$SE_COUNTER;
+        $this->message .= "N9*EQ*{$this->row->CONTAINERS}~\n";
+        ++$SE_COUNTER;
+        /*
+         *                          Q2
+         */
+        $this->message .= "Q2*********{$this->row->VESSEL_NUMBER}***L*{$this->row->VESSEL_NAME}~\n";
+        ++$SE_COUNTER;
+        /*
+         *                     LOOP R4 & DTM
+         *               1. code=L (Port of loading MANDATORY)
+         */
+        $date = date("Ymd", strtotime($this->row->ACTUAL_DATE_DEPARTURE));
+        $time = date("Hi", strtotime($this->row->ACTUAL_DATE_DEPARTURE));
+        $countrycode = substr($this->row->PORT_DEPARTURE_CODE, 0, 2);
+        $this->message .= "R4*L*UN*{$this->row->PORT_DEPARTURE_CODE}*{$this->row->PORT_DEPARTURE}*{$countrycode}~\n";
+        ++$SE_COUNTER;
+        $this->message .= "DTM*370*{$date}*{$time}*LT~\n";
+        ++$SE_COUNTER;
+        // 2. code=D (Place of Discharge MANDATORY)
+        $date = date("Ymd", strtotime($this->row->TARGET_DATE_ARRIVAL));
+        $time = date("Hi", strtotime($this->row->TARGET_DATE_ARRIVAL));
+        $countrycode = substr($this->row->PORT_ARRIVAL_CODE, 0, 2);
+        $this->message .= "R4*D*UN*{$this->row->PORT_ARRIVAL_CODE}*{$this->row->PORT_ARRIVAL}*{$countrycode}~\n";
+        ++$SE_COUNTER;
+        $this->message .= "DTM*139*{$date}*{$time}*LT~\n";
+        ++$SE_COUNTER;
+        // 2. code=E (Place of Dilevery MANDATORY)
+        $date = date("Ymd", strtotime($this->row->TARGET_DATE_ARRIVAL));
+        $time = date("Hi", strtotime($this->row->TARGET_DATE_ARRIVAL));
+        $countrycode = substr($this->row->PORT_ARRIVAL_CODE, 0, 2);
+        $this->message .= "R4*E*UN*{$this->row->PORT_ARRIVAL_CODE}*{$this->row->PORT_ARRIVAL}*{$countrycode}~\n";
+        ++$SE_COUNTER;
+        $this->message .= "DTM*139*{$date}*{$time}*LT~\n";
+        ++$SE_COUNTER;
+        //SE*15*0001
+        ++$SE_COUNTER;
+        $this->message .= "SE*{$SE_COUNTER}*{$this->ID_st}~\n";
+    }
     public function genVesselArrivalActual(){}
 
     public function genDeparturePortDestinActual(){}
